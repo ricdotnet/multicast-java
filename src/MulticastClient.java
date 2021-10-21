@@ -10,6 +10,8 @@ public class MulticastClient {
   byte[] buf = new byte[1028];
   byte[] bufIn = new byte[1028];
 
+  private String username;
+
   private void startClient() {
     try {
       group = InetAddress.getByName("225.1.1.1");
@@ -23,20 +25,21 @@ public class MulticastClient {
     try {
       reader = new BufferedReader(new InputStreamReader(System.in));
 
-      System.out.print(">> ");
       while(true) {
         String msg = reader.readLine();
 
         if(msg.equals("CLOSE")) {
-          msg = "Good bye!";
+          buf = (username + ": Good bye!").getBytes();
+          socket.send(new DatagramPacket(buf, buf.length, group, 9090));
           socket.leaveGroup(group);
           break;
         }
 
-        buf = msg.getBytes();
+        buf = (username + ": " + msg).getBytes();
         socket.send(new DatagramPacket(buf, buf.length, group, 9090));
-        System.out.print(">> ");
       }
+
+      System.exit(0);
     } catch (IOException e) {
       e.printStackTrace();
     }
@@ -48,8 +51,10 @@ public class MulticastClient {
       while (true) {
         data = new DatagramPacket(bufIn, 0, bufIn.length);
         socket.receive(data);
-        System.out.println(new String(data.getData(), data.getOffset(), data.getLength()));
-        System.out.print(">> ");
+        String msgIn = new String(data.getData(), data.getOffset(), data.getLength());
+        if(!msgIn.contains(username)) {
+          System.out.println(new String(data.getData(), data.getOffset(), data.getLength()));
+        }
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -58,6 +63,7 @@ public class MulticastClient {
 
   public static void main(String[] args) {
     MulticastClient main = new MulticastClient();
+    main.username = args[0];
 
     main.startClient();
 
